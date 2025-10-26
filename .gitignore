@@ -1,0 +1,17 @@
+# Bytecode / cache
+__pycache__/
+*.pyc
+
+# Environment
+venv/
+.env
+
+# Database
+*.db
+
+# Docker artifacts
+*.pid
+*.log
+
+# VS Code settings
+.vscode/
