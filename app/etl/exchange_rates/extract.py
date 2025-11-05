@@ -1,16 +1,12 @@
 import requests
+from datetime import datetime
+from app.core.config import settings
 
-def extract_exchange_rates(base_currency="EUR"):
-    url = f"https://open.er-api.com/v6/latest/{base_currency}"
+BASE_URL = "https://api.frankfurter.app"
+
+def extract_exchange_rates(base_currency: str, targets: list[str], start_date: str, end_date: str):
+    url = f"{BASE_URL}/{start_date}..{end_date}?base={base_currency}&to={','.join(targets)}"
     response = requests.get(url)
-
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch data: {response.status_code}")
-
+    response.raise_for_status()
     data = response.json()
-
-    if data.get("result") != "success":
-        raise Exception(f"API error: {data.get('error-type', 'Unknown error')}")
-
     return data
-
