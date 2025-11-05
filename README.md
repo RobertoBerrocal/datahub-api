@@ -1,101 +1,145 @@
-🌍 DataHub API
+# 📊 DataHub API
 
-DataHub API es un backend modular construido con FastAPI y Docker, diseñado para extraer, limpiar, almacenar y servir datos públicos mediante endpoints REST.
+A modular **FastAPI-based Data Engineering and Backend project** designed to integrate external public APIs, process them through ETL pipelines, and store results in a local SQLite database.  
+Currently, the system ingests data from **Frankfurter Exchange Rates** and **OpenWeather Air Pollution** APIs.
 
-Este proyecto combina conceptos de Backend Development y Data Engineering, con una arquitectura escalable que permite agregar nuevas fuentes de datos fácilmente.
+---
 
-🚀 Características principales
+## ⚙️ Environment Setup
 
-🔹 API desarrollada con FastAPI
+### 1️⃣ Environment Variables
 
-🔹 Base de datos SQLite (por defecto, extensible a PostgreSQL)
+Create a `.env` file in the project root with the following keys:
 
-🔹 Arquitectura modular ETL (Extract, Transform, Load)
+```bash
+# General
+APP_NAME="DataHub API"
+DEBUG=True
 
-🔹 Configuración por entorno usando .env
+# Database
+DATABASE_URL=sqlite:///datahub.db
 
-🔹 Totalmente Dockerized
+# API Keys
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+```
 
-🔹 Endpoints REST documentados automáticamente con Swagger UI
+_Note: The Exchange Rates module uses the Frankfurter API, which does not require an API key._
 
-🧱 Arquitectura general
-                ┌────────────────────────────┐
-                │  External Data Sources     │
-                │ (APIs públicas, CSVs, etc) │
-                └──────────────┬─────────────┘
-                               │
-                      (ETL Pipeline)
-                               │
-                   ┌───────────▼───────────┐
-                   │      SQLite DB        │
-                   │   (datahub.db)        │
-                   └───────────┬───────────┘
-                               │
-                        (FastAPI Layer)
-                               │
-                   ┌───────────▼───────────┐
-                   │   REST API Endpoints  │
-                   │  /, /data/sources, …  │
-                   └───────────┬───────────┘
-                               │
-                           (Client)
-                               │
-                   ┌───────────▼───────────┐
-                   │ React / BI / cURL / … │
-                   └───────────────────────┘
+---
 
-⚙️ Configuración del entorno
+### 2️⃣ Local Installation
 
-1️⃣ Clonar el repositorio
+```bash
+# Create a virtual environment
+python3 -m venv venv
+# macOS/Linux:
+source venv/bin/activate
+# Windows (PowerShell):
+# .\venv\Scripts\Activate.ps1
 
-git clone https://github.com/RobertoBerrocal/datahub-api.git
-cd datahub-api
+# Install dependencies
+pip install -r requirements.txt
+```
 
+Start the API locally:
 
-2️⃣ Crear el archivo .env
+```bash
+uvicorn app.main:app --reload
+```
 
-Puedes copiar el ejemplo incluido:
+- App: http://localhost:8000  
+- Swagger UI: http://localhost:8000/docs
 
-cp .env.example .env
+---
 
+### 3️⃣ Run with Docker
 
-3️⃣ Construir y ejecutar con Docker
-
+```bash
 docker-compose up --build
+```
 
+This will:
+- Build the image from the `Dockerfile`
+- Mount the SQLite database file (`data/datahub.db`)
+- Expose the FastAPI service on port `8000`
 
-La API quedará corriendo en:
+Stop containers:
 
-🌐 http://localhost:8000
+```bash
+docker-compose down
+```
 
-📘 Documentación Swagger → http://localhost:8000/docs
+---
 
-🧩 Endpoints actuales (Fase 1)
-Endpoint	Método	Descripción
-/	GET	Prueba de conexión
-/data/sources	GET	Lista las fuentes de datos disponibles
-🔜 Próximas Fases
-💱 Fase 2: Exchange Rates API
+## 🔄 ETL Pipelines
 
-Integración con una API gratuita de tasas de cambio (EUR/USD, etc.)
-→ Descarga diaria automática y almacenamiento en la base de datos.
+### 💱 Exchange Rates
 
-🌦️ Fase 3: OpenWeather API
+- Source: **Frankfurter API** (https://www.frankfurter.app)
+- Base currencies: **USD**, **EUR**
+- Target currencies: `GBP`, `AUD`, `CAD`, `CHF`, `JPY`, `MXN`, `PEN`, `SEK`, `BRL`
+- Historical range: **2025-01-01 → current date**
+- Stages:
+  - **Extract**: HTTP GET requests to Frankfurter endpoints for historical rates
+  - **Transform**: Normalize pairs into tabular structure (base, target, rate, date)
+  - **Load**: Append into SQLite table `exchange_rates`
 
-Integración con una API gratuita de clima (OpenWeatherMap).
-→ Información meteorológica actualizada por ciudad.
+---
 
-🕒 Fase 4: Scheduler y automatización
+### 🌫️ Air Pollution
 
-Automatización de los pipelines ETL con APScheduler.
+- Source: **OpenWeather Air Pollution (Historical)** (https://openweathermap.org/api/air-pollution)
+- Endpoint used: `https://api.openweathermap.org/data/2.5/air_pollution/history`
+- Cities: **Berlin**, **Munich**, **Frankfurt**
+- Time range: **Last 5 days** (hourly)
+- Stages:
+  - **Extract**: Fetch hourly pollutant data for each city
+  - **Transform**: Flatten JSON into tabular structure (city, AQI, CO, NO, NO2, O3, SO2, PM2_5, PM10, NH3, date)
+  - **Load**: Append into SQLite table `air_pollution_data`
 
-🧑‍💻 Autor
+---
 
-Roberto Berrocal
-Data Analyst & Full-Stack Developer
-📍 Berlín, Alemania
-🔗 GitHub Profile
+## 📡 API Endpoints
 
-📜 Licencia
+### GET `/`
+Returns a simple health/status payload.
 
-MIT License © 2025 Roberto Berrocal
+### POST `/data/update/exchange_rates`
+Runs the Exchange Rates ETL and updates `exchange_rates`.
+
+### POST `/data/update/air_pollution`
+Runs the Air Pollution ETL for Berlin, Munich, and Frankfurt (last 5 days) and updates `air_pollution_data`.
+
+---
+
+## 🧰 Tech Stack
+
+- **FastAPI** — web framework
+- **Pandas** — data processing & loading to SQLite
+- **SQLAlchemy** — ORM/engine
+- **SQLite** — local relational database
+- **Docker & Docker Compose** — containerized runtime
+- **Uvicorn** — ASGI server
+
+---
+
+## 🧠 Future Enhancements
+
+- [ ] Daily incremental updates for both pipelines
+- [ ] Data validation & error handling in ETL
+- [ ] Additional cities and currencies
+- [ ] Auth for ETL endpoints (JWT/API Key)
+- [ ] Optional visualization layer (React or BI)
+
+---
+
+## 👨‍💻 Author
+
+**Roberto Berrocal**  
+Data & Software Engineer — Berlin, Germany  
+GitHub: https://github.com/RobertoBerrocal  
+LinkedIn: https://www.linkedin.com/in/roberto-berrocal
+
+---
+
+📦 Version 2.0 — Last updated: November 2025
