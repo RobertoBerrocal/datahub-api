@@ -10,7 +10,7 @@ def extract_air_pollution():
         "Frankfurt": (50.11, 8.68)
     }
 
-    # Últimos 5 días
+    # Last 5 days because of API limitations
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=5)
     start_unix = int(start.timestamp())
