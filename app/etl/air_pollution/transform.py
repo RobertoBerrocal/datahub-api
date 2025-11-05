@@ -1,21 +1,29 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 
-def transform_air_pollution(raw_data: dict, city_id: int):
-    records = []
-    for entry in raw_data.get("list", []):
-        c = entry["components"]
-        records.append({
-            "city_id": city_id,
-            "aqi": entry["main"]["aqi"],
-            "co": c["co"],
-            "no": c["no"],
-            "no2": c["no2"],
-            "o3": c["o3"],
-            "so2": c["so2"],
-            "pm2_5": c["pm2_5"],
-            "pm10": c["pm10"],
-            "nh3": c["nh3"],
-            "timestamp": datetime.utcfromtimestamp(entry["dt"])
+def transform_air_pollution(raw_data):
+    if not raw_data:
+        print("[WARN] No data to transform.")
+        return pd.DataFrame()
+
+    rows = []
+    for entry in raw_data:
+        comps = entry.get("components", {})
+        main = entry.get("main", {})
+        rows.append({
+            "city": entry["city"],
+            "aqi": main.get("aqi"),
+            "co": comps.get("co"),
+            "no": comps.get("no"),
+            "no2": comps.get("no2"),
+            "o3": comps.get("o3"),
+            "so2": comps.get("so2"),
+            "pm2_5": comps.get("pm2_5"),
+            "pm10": comps.get("pm10"),
+            "nh3": comps.get("nh3"),
+            "date": datetime.fromtimestamp(entry["dt"], tz=timezone.utc)
         })
-    return pd.DataFrame(records)
+
+    df = pd.DataFrame(rows)
+    print(f"[DEBUG] Transformed {len(df)} rows")
+    return df

@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "sqlite:///datahub.db"
+    database_url: str = "sqlite:///./data/datahub.db"
 
     # Exchange Rates API
     exchange_rate_api_key: str | None = None

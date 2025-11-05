@@ -1,13 +1,10 @@
-from app.db import models
-from sqlalchemy.orm import Session
+from app.db.database import engine  # Importamos el engine directamente
 
-def load_air_pollution(df, db: Session):
-    for _, row in df.iterrows():
-        exists = (
-            db.query(models.AirPollutionData)
-            .filter_by(city_id=row.city_id, timestamp=row.timestamp)
-            .first()
-        )
-        if not exists:
-            db.add(models.AirPollutionData(**row.to_dict()))
-    db.commit()
+def load_air_pollution(df, _db=None):
+    if df.empty:
+        print("[WARN] Empty dataframe, skipping load.")
+        return 0
+
+    df.to_sql("air_pollution_data", con=engine, if_exists="append", index=False)
+    print(f"[INFO] Inserted {len(df)} rows into air_pollution_data.")
+    return len(df)
