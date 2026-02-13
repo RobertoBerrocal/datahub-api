@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     openweather_api_key: str | None = None
     openweather_city: str = "Berlin"
 
+    # Scheduler (Phase 3)
+    scheduler_enabled: bool = False
+    timezone: str = "Europe/Berlin"
+    exchange_rates_interval_minutes: int = 1440  # daily
+    air_pollution_interval_minutes: int = 60     # hourly
+
     class Config:
         env_file = ".env"
 
