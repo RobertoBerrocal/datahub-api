@@ -1,7 +1,11 @@
 # 📊 DataHub API
 
-A modular **FastAPI-based Data Engineering and Backend project** designed to integrate external public APIs, process them through ETL pipelines, and store results in a local SQLite database.  
-Currently, the system ingests data from **Frankfurter Exchange Rates** and **OpenWeather Air Pollution** APIs.
+A modular **FastAPI-based Data Engineering and Backend project** designed to integrate external public APIs, process them through ETL pipelines, and store results in a local SQLite database.
+
+Currently, the system ingests data from:
+
+- **Frankfurter Exchange Rates API**
+- **OpenWeather Air Pollution API (Historical)**
 
 ---
 
@@ -9,65 +13,65 @@ Currently, the system ingests data from **Frankfurter Exchange Rates** and **Ope
 
 ### 1️⃣ Environment Variables
 
-Create a `.env` file in the project root with the following keys:
+Create a `.env` file in the project root:
 
-```bash
-# General
-APP_NAME="DataHub API"
-DEBUG=True
+    # General
+    APP_NAME="DataHub API"
+    DEBUG=True
 
-# Database
-DATABASE_URL=sqlite:///datahub.db
+    # Database
+    DATABASE_URL=sqlite:///./data/datahub.db
 
-# API Keys
-OPENWEATHER_API_KEY=your_openweather_api_key_here
-```
+    # API Keys
+    OPENWEATHER_API_KEY=your_openweather_api_key_here
 
-_Note: The Exchange Rates module uses the Frankfurter API, which does not require an API key._
+> The Exchange Rates module uses the Frankfurter API, which does not require an API key.
 
 ---
 
-### 2️⃣ Local Installation
+### 2️⃣ Local Installation (Recommended for Development)
 
-```bash
-# Create a virtual environment
-python3 -m venv venv
-# macOS/Linux:
-source venv/bin/activate
-# Windows (PowerShell):
-# .\venv\Scripts\Activate.ps1
+    # Clone the repository
+    git clone https://github.com/RobertoBerrocal/datahub-api.git
+    cd datahub-api
 
-# Install dependencies
-pip install -r requirements.txt
-```
+    # Create virtual environment (Python 3.11 recommended)
+    python3.11 -m venv .venv
 
-Start the API locally:
+    # Activate environment
+    # macOS/Linux
+    source .venv/bin/activate
+    # Windows (PowerShell)
+    # .venv\Scripts\Activate.ps1
 
-```bash
-uvicorn app.main:app --reload
-```
+    # Install dependencies
+    python -m pip install -r requirements.txt
 
-- App: http://localhost:8000  
+Run the application:
+
+    python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+Access:
+
+- API: http://localhost:8000  
 - Swagger UI: http://localhost:8000/docs
 
 ---
 
 ### 3️⃣ Run with Docker
 
-```bash
-docker-compose up --build
-```
+    docker-compose up --build
 
 This will:
-- Build the image from the `Dockerfile`
-- Mount the SQLite database file (`data/datahub.db`)
-- Expose the FastAPI service on port `8000`
+
+- Build the Docker image
+- Mount the SQLite database (`./data/datahub.db`)
+- Load environment variables from `.env`
+- Expose FastAPI on port `8000`
 
 Stop containers:
 
-```bash
-docker-compose down
-```
+    docker-compose down
 
 ---
 
@@ -75,71 +79,137 @@ docker-compose down
 
 ### 💱 Exchange Rates
 
-- Source: **Frankfurter API** (https://www.frankfurter.app)
-- Base currencies: **USD**, **EUR**
-- Target currencies: `GBP`, `AUD`, `CAD`, `CHF`, `JPY`, `MXN`, `PEN`, `SEK`, `BRL`
-- Historical range: **2025-01-01 → current date**
-- Stages:
-  - **Extract**: HTTP GET requests to Frankfurter endpoints for historical rates
-  - **Transform**: Normalize pairs into tabular structure (base, target, rate, date)
-  - **Load**: Append into SQLite table `exchange_rates`
+- Source: **Frankfurter API**  
+  https://www.frankfurter.app
+
+- Base currencies:
+  - `USD`
+  - `EUR`
+
+- Target currencies:
+  - `GBP`
+  - `AUD`
+  - `CAD`
+  - `CHF`
+  - `JPY`
+  - `MXN`
+  - `PEN`
+  - `SEK`
+  - `BRL`
+
+- Historical range:
+  - From **2025-01-01**
+  - Until current date
+
+#### ETL Flow
+
+- **Extract**
+  - HTTP requests to Frankfurter historical endpoint
+- **Transform**
+  - Normalize response into tabular format:
+    - `date`
+    - `base_currency`
+    - `target_currency`
+    - `exchange_rate`
+- **Load**
+  - Append to SQLite table: `exchange_rates`
 
 ---
 
 ### 🌫️ Air Pollution
 
-- Source: **OpenWeather Air Pollution (Historical)** (https://openweathermap.org/api/air-pollution)
-- Endpoint used: `https://api.openweathermap.org/data/2.5/air_pollution/history`
-- Cities: **Berlin**, **Munich**, **Frankfurt**
-- Time range: **Last 5 days** (hourly)
-- Stages:
-  - **Extract**: Fetch hourly pollutant data for each city
-  - **Transform**: Flatten JSON into tabular structure (city, AQI, CO, NO, NO2, O3, SO2, PM2_5, PM10, NH3, date)
-  - **Load**: Append into SQLite table `air_pollution_data`
+- Source: **OpenWeather Air Pollution (Historical)**  
+  https://openweathermap.org/api/air-pollution
+
+- Endpoint used:
+
+    /data/2.5/air_pollution/history
+
+- Cities:
+  - Berlin
+  - Munich
+  - Frankfurt
+
+- Time range:
+  - Last **5 days**
+  - Hourly granularity
+
+#### ETL Flow
+
+- **Extract**
+  - Fetch hourly pollution data per city
+- **Transform**
+  - Flatten JSON into structured format:
+    - `city`
+    - `timestamp`
+    - `aqi`
+    - `co`
+    - `no`
+    - `no2`
+    - `o3`
+    - `so2`
+    - `pm2_5`
+    - `pm10`
+    - `nh3`
+- **Load**
+  - Append to SQLite table: `air_pollution_data`
 
 ---
 
 ## 📡 API Endpoints
 
-### GET `/`
-Returns a simple health/status payload.
+### `GET /`
 
-### POST `/data/update/exchange_rates`
-Runs the Exchange Rates ETL and updates `exchange_rates`.
+Health check endpoint.
 
-### POST `/data/update/air_pollution`
-Runs the Air Pollution ETL for Berlin, Munich, and Frankfurt (last 5 days) and updates `air_pollution_data`.
+### `POST /data/update/exchange_rates`
+
+Runs the Exchange Rates ETL pipeline and updates:
+
+    exchange_rates
+
+### `POST /data/update/air_pollution`
+
+Runs the Air Pollution ETL pipeline for Berlin, Munich, and Frankfurt and updates:
+
+    air_pollution_data
 
 ---
 
 ## 🧰 Tech Stack
 
-- **FastAPI** — web framework
-- **Pandas** — data processing & loading to SQLite
-- **SQLAlchemy** — ORM/engine
-- **SQLite** — local relational database
-- **Docker & Docker Compose** — containerized runtime
-- **Uvicorn** — ASGI server
+- **FastAPI** — Backend framework  
+- **Pandas** — Data transformation  
+- **SQLAlchemy** — ORM & DB engine  
+- **SQLite** — Embedded relational database  
+- **APScheduler** — Scheduled ETL execution  
+- **Docker & Docker Compose** — Containerization  
+- **Uvicorn** — ASGI server  
 
 ---
 
 ## 🧠 Future Enhancements
 
-- [ ] Daily incremental updates for both pipelines
-- [ ] Data validation & error handling in ETL
-- [ ] Additional cities and currencies
-- [ ] Auth for ETL endpoints (JWT/API Key)
-- [ ] Optional visualization layer (React or BI)
+- Incremental ETL updates  
+- Data validation layer  
+- Additional cities & currencies  
+- Authentication for ETL endpoints  
+- Optional visualization layer (React or BI tool)  
 
 ---
 
 ## 👨‍💻 Author
 
 **Roberto Berrocal**  
-Data & Software Engineer — Berlin, Germany  
-GitHub: https://github.com/RobertoBerrocal  
-LinkedIn: https://www.linkedin.com/in/roberto-berrocal
+Data Analyst & Engineer — Berlin, Germany  
+
+GitHub:  
+https://github.com/RobertoBerrocal  
+
+LinkedIn:  
+https://www.linkedin.com/in/roberto-berrocal  
 
 ---
 
-📦 Version 2.0 — Last updated: November 2025
+📦 **Version 2.0**  
+Last updated: November 2025
