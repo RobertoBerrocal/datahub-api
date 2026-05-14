@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 
 def transform_air_pollution(raw_data):
     if not raw_data:
-        print("[WARN] No data to transform.")
         return pd.DataFrame()
 
     rows = []
@@ -21,9 +20,7 @@ def transform_air_pollution(raw_data):
             "pm2_5": comps.get("pm2_5"),
             "pm10": comps.get("pm10"),
             "nh3": comps.get("nh3"),
-            "date": datetime.fromtimestamp(entry["dt"], tz=timezone.utc)
+            "timestamp": datetime.fromtimestamp(entry["dt"], tz=timezone.utc)
         })
 
-    df = pd.DataFrame(rows)
-    print(f"[DEBUG] Transformed {len(df)} rows")
-    return df
+    return pd.DataFrame(rows)

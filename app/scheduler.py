@@ -1,10 +1,12 @@
 import logging
 from typing import Optional
+from datetime import date
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.config import settings
+from app.db.database import SessionLocal
 
 from app.etl.exchange_rates.extract import extract_exchange_rates
 from app.etl.exchange_rates.transform import transform_exchange_rates
@@ -23,18 +25,33 @@ _scheduler: Optional[BackgroundScheduler] = None
 
 def _run_exchange_rates_job() -> None:
     logger.info("Running scheduled job: exchange_rates")
-    raw = extract_exchange_rates()
-    df = transform_exchange_rates(raw)
-    rows = load_exchange_rates(df)
-    logger.info("exchange_rates job completed. rows_loaded=%s", rows)
+    bases = ["USD", "EUR"]
+    targets = ["GBP", "AUD", "CAD", "PEN", "BRL", "JPY", "CHF", "SEK", "MXN"]
+    start_date = "2025-01-01"
+    end_date = date.today().strftime("%Y-%m-%d")
+
+    session = SessionLocal()
+    try:
+        total_rows = 0
+        for base in bases:
+            raw = extract_exchange_rates(base, targets, start_date, end_date)
+            df = transform_exchange_rates(raw)
+            total_rows += load_exchange_rates(df, session)
+        logger.info("exchange_rates job completed. rows_loaded=%s", total_rows)
+    finally:
+        session.close()
 
 
 def _run_air_pollution_job() -> None:
     logger.info("Running scheduled job: air_pollution")
-    raw = extract_air_pollution()
-    df = transform_air_pollution(raw)
-    rows = load_air_pollution(df)
-    logger.info("air_pollution job completed. rows_loaded=%s", rows)
+    session = SessionLocal()
+    try:
+        raw = extract_air_pollution()
+        df = transform_air_pollution(raw)
+        rows = load_air_pollution(df, session)
+        logger.info("air_pollution job completed. rows_loaded=%s", rows)
+    finally:
+        session.close()
 
 
 def init_scheduler() -> None:
