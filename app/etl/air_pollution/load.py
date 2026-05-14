@@ -1,10 +1,66 @@
-from app.db.database import engine  # Importamos el engine directamente
+import logging
+from sqlalchemy.orm import Session
 
-def load_air_pollution(df, _db=None):
+from app.db import models, database
+
+logger = logging.getLogger("datahub.air_pollution.load")
+
+
+def load_air_pollution(df, db: Session | None = None):
     if df.empty:
-        print("[WARN] Empty dataframe, skipping load.")
         return 0
 
-    df.to_sql("air_pollution_data", con=engine, if_exists="append", index=False)
-    print(f"[INFO] Inserted {len(df)} rows into air_pollution_data.")
-    return len(df)
+    owns_session = db is None
+    session = db or database.SessionLocal()
+
+    try:
+        city_name_to_id: dict[str, int] = {}
+        inserted = 0
+
+        for city_name in df["city"].unique():
+            first_row = df[df["city"] == city_name].iloc[0]
+            city = session.query(models.City).filter_by(name=city_name).first()
+            if city is None:
+                city = models.City(
+                    name=city_name,
+                    lat=float(first_row.lat) if first_row.lat is not None else 0.0,
+                    lon=float(first_row.lon) if first_row.lon is not None else 0.0,
+                    country=str(first_row.country) if first_row.country else "N/A",
+                )
+                session.add(city)
+                session.flush()
+            city_name_to_id[city_name] = city.id
+
+        for _, row in df.iterrows():
+            city_id = city_name_to_id[row.city]
+            exists = (
+                session.query(models.AirPollutionData)
+                .filter_by(city_id=city_id, timestamp=row.timestamp)
+                .first()
+            )
+            if exists:
+                continue
+
+            session.add(
+                models.AirPollutionData(
+                    city_id=city_id,
+                    aqi=row.aqi,
+                    co=row.co,
+                    no=row.no,
+                    no2=row.no2,
+                    o3=row.o3,
+                    so2=row.so2,
+                    pm2_5=row.pm2_5,
+                    pm10=row.pm10,
+                    nh3=row.nh3,
+                    timestamp=row.timestamp,
+                )
+            )
+            inserted += 1
+
+        session.commit()
+        logger.info("Inserted %s rows into air_pollution_data", inserted)
+        return inserted
+    finally:
+        if owns_session:
+            session.close()
