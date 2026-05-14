@@ -1,25 +1,31 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from sqlalchemy import text
 
 from app.api.routes_data import router as data_router
 from app.db import models, database
-from app.scheduler import init_scheduler, is_scheduler_running
+from app.scheduler import init_scheduler, is_scheduler_running, shutdown_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
 )
 
-app = FastAPI(title="DataHub API")
-
-app.include_router(data_router)
-
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     models.Base.metadata.create_all(bind=database.engine)
     init_scheduler()
+    try:
+        yield
+    finally:
+        shutdown_scheduler()
+
+
+app = FastAPI(title="DataHub API", lifespan=lifespan)
+
+app.include_router(data_router)
 
 @app.get("/")
 def root():

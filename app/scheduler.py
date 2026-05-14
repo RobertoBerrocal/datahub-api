@@ -108,3 +108,11 @@ def init_scheduler() -> None:
 
 def is_scheduler_running() -> bool:
     return _scheduler.running if _scheduler is not None else False
+
+
+def shutdown_scheduler() -> None:
+    global _scheduler
+    if _scheduler is not None and _scheduler.running:
+        _scheduler.shutdown(wait=False)
+        logger.info("Scheduler stopped.")
+    _scheduler = None

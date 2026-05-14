@@ -152,7 +152,7 @@ Stop containers:
     - `pm10`
     - `nh3`
 - **Load**
-  - Append to SQLite table: `air_pollution_data`
+  - Insert deduplicated rows (city + timestamp unique key) into SQLite table: `air_pollution_data`
 
 ---
 
@@ -160,7 +160,11 @@ Stop containers:
 
 ### `GET /`
 
-Health check endpoint.
+Welcome endpoint.
+
+### `GET /health`
+
+Operational health endpoint with database and scheduler status.
 
 ### `POST /data/update/exchange_rates`
 
@@ -195,6 +199,14 @@ Runs the Air Pollution ETL pipeline for Berlin, Munich, and Frankfurt and update
 - Additional cities & currencies  
 - Authentication for ETL endpoints  
 - Optional visualization layer (React or BI tool)  
+
+---
+
+## ✅ Testing
+
+Run tests with:
+
+    .venv/bin/python -m pytest -q
 
 ---
 

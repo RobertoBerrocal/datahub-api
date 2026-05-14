@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Base
@@ -21,7 +22,13 @@ class Settings(BaseSettings):
     exchange_rates_interval_minutes: int = 1440  # daily
     air_pollution_interval_minutes: int = 60     # hourly
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
+
+    @field_validator("exchange_rates_interval_minutes", "air_pollution_interval_minutes")
+    @classmethod
+    def validate_scheduler_interval(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("Scheduler interval must be greater than 0")
+        return value
 
 settings = Settings()

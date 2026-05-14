@@ -18,9 +18,15 @@ def load_air_pollution(df, db: Session | None = None):
         inserted = 0
 
         for city_name in df["city"].unique():
+            first_row = df[df["city"] == city_name].iloc[0]
             city = session.query(models.City).filter_by(name=city_name).first()
             if city is None:
-                city = models.City(name=city_name, lat=0.0, lon=0.0, country="N/A")
+                city = models.City(
+                    name=city_name,
+                    lat=float(first_row.lat) if first_row.lat is not None else 0.0,
+                    lon=float(first_row.lon) if first_row.lon is not None else 0.0,
+                    country=str(first_row.country) if first_row.country else "N/A",
+                )
                 session.add(city)
                 session.flush()
             city_name_to_id[city_name] = city.id

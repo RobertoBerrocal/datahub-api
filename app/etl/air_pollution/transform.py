@@ -11,6 +11,9 @@ def transform_air_pollution(raw_data):
         main = entry.get("main", {})
         rows.append({
             "city": entry["city"],
+            "lat": entry.get("lat"),
+            "lon": entry.get("lon"),
+            "country": entry.get("country"),
             "aqi": main.get("aqi"),
             "co": comps.get("co"),
             "no": comps.get("no"),
