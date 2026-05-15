@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.api.routes_data import router as data_router
 from app.db import models, database
+from app.db.migrations import run_startup_migrations
 from app.scheduler import init_scheduler, is_scheduler_running, shutdown_scheduler
 
 logging.basicConfig(
@@ -15,6 +16,7 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    run_startup_migrations()
     models.Base.metadata.create_all(bind=database.engine)
     init_scheduler()
     try:

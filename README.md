@@ -152,7 +152,7 @@ Stop containers:
     - `pm10`
     - `nh3`
 - **Load**
-  - Insert deduplicated rows (city + timestamp unique key) into SQLite table: `air_pollution_data`
+  - Insert deduplicated rows (city + timestamp unique key) into SQLite table: `air_pollution`
 
 ---
 
@@ -176,7 +176,7 @@ Runs the Exchange Rates ETL pipeline and updates:
 
 Runs the Air Pollution ETL pipeline for Berlin, Munich, and Frankfurt and updates:
 
-    air_pollution_data
+    air_pollution
 
 ---
 
