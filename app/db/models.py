@@ -21,7 +21,7 @@ class City(Base):
 
 
 class AirPollutionData(Base):
-    __tablename__ = "air_pollution_data"
+    __tablename__ = "air_pollution"
     id = Column(Integer, primary_key=True, index=True)
     city_id = Column(Integer, ForeignKey("cities.id"))
     aqi = Column(Integer)

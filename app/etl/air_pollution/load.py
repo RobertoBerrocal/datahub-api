@@ -59,7 +59,7 @@ def load_air_pollution(df, db: Session | None = None):
             inserted += 1
 
         session.commit()
-        logger.info("Inserted %s rows into air_pollution_data", inserted)
+        logger.info("Inserted %s rows into air_pollution", inserted)
         return inserted
     finally:
         if owns_session:
